@@ -1679,6 +1679,7 @@ function setupForms() {
         t('notification-low-stock-title') || "Alerte Stock Bas",
         `${product.name} (SKU: ${product.sku}) est presque épuisé (${product.quantity} restants).`
       );
+      triggerLowStockEmail(product);
     }
 
     // Build description
@@ -1881,6 +1882,14 @@ function openAdjustmentModal(productId, defaultType = "in") {
 
   modal.classList.add('active');
   lucide.createIcons();
+}
+
+function openModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.add('active');
+    lucide.createIcons();
+  }
 }
 
 function closeModal(modalId) {
@@ -2379,6 +2388,30 @@ function showLocalNotification(title, body) {
         triggerNotification();
       }
     });
+  }
+}
+
+// Trigger Edge Function low-stock email alert
+async function triggerLowStockEmail(product) {
+  if (!isCloudEnabled || isDemoMode) return;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || !session.user || !session.user.email) return;
+
+    console.log(`Invoking send-low-stock-email Edge Function for ${product.name}...`);
+    const { error } = await supabase.functions.invoke('send-low-stock-email', {
+      body: {
+        productName: product.name,
+        sku: product.sku,
+        quantity: product.quantity,
+        minQuantity: product.minQuantity,
+        userEmail: session.user.email
+      }
+    });
+
+    if (error) throw error;
+  } catch (err) {
+    console.error("Failed to invoke low-stock email Edge Function:", err);
   }
 }
 
