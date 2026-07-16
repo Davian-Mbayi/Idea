@@ -9,7 +9,7 @@ import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_TRANSACTIONS } from './mock-data.j
 // ==========================================================================
 const SUPABASE_URL = "https://youqcojurypydzjfhlqq.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvdXFjb2p1cnlweWR6amZobHFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDY4MTQsImV4cCI6MjA5Nzk4MjgxNH0.XJ27UrijnJb33MUlMCzu_D1Z2m9JfwI_XYjG0IXEI84";
-const DOWNLOAD_INSTALLER_URL = "#"; // Replace with your actual installer download url when hosting
+const DOWNLOAD_INSTALLER_URL = "https://github.com/Davian-Mbayi/Idea/releases/download/V.1.0.0/ShopStock.Setup.1.0.0.exe"; // Path to compiled desktop installer
 
 let supabase = null;
 let isCloudEnabled = false;
@@ -2904,11 +2904,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (downloadInstallerBtn) {
     downloadInstallerBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      if (DOWNLOAD_INSTALLER_URL === "#") {
-        showToast("L'installateur desktop sera disponible prochainement.", "info");
-      } else {
-        window.open(DOWNLOAD_INSTALLER_URL, '_blank');
-      }
+      window.open(DOWNLOAD_INSTALLER_URL, '_blank');
     });
   }
 
@@ -2916,11 +2912,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (settingsDownloadBtn) {
     settingsDownloadBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      if (DOWNLOAD_INSTALLER_URL === "#") {
-        showToast("L'installateur desktop sera disponible prochainement.", "info");
-      } else {
-        window.open(DOWNLOAD_INSTALLER_URL, '_blank');
-      }
+      window.open(DOWNLOAD_INSTALLER_URL, '_blank');
     });
   }
 
