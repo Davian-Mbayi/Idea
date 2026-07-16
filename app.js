@@ -9,7 +9,7 @@ import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_TRANSACTIONS } from './mock-data.j
 // ==========================================================================
 const SUPABASE_URL = "https://youqcojurypydzjfhlqq.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvdXFjb2p1cnlweWR6amZobHFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDY4MTQsImV4cCI6MjA5Nzk4MjgxNH0.XJ27UrijnJb33MUlMCzu_D1Z2m9JfwI_XYjG0IXEI84";
-const DOWNLOAD_INSTALLER_URL = "https://github.com/Davian-Mbayi/Idea/releases/download/V.1.0.0/ShopStock.Setup.1.0.0.exe"; // Path to compiled desktop installer
+const DOWNLOAD_INSTALLER_URL = "https://github.com/Davian-Mbayi/Idea/releases/download/V1.0.1/ShopStock.Setup.1.0.0.exe"; // Path to compiled desktop installer
 
 let supabase = null;
 let isCloudEnabled = false;
@@ -1679,7 +1679,6 @@ function setupForms() {
         t('notification-low-stock-title') || "Alerte Stock Bas",
         `${product.name} (SKU: ${product.sku}) est presque épuisé (${product.quantity} restants).`
       );
-      triggerLowStockEmail(product);
     }
 
     // Build description
@@ -2388,30 +2387,6 @@ function showLocalNotification(title, body) {
         triggerNotification();
       }
     });
-  }
-}
-
-// Trigger Edge Function low-stock email alert
-async function triggerLowStockEmail(product) {
-  if (!isCloudEnabled || isDemoMode) return;
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !session.user || !session.user.email) return;
-
-    console.log(`Invoking send-low-stock-email Edge Function for ${product.name}...`);
-    const { error } = await supabase.functions.invoke('send-low-stock-email', {
-      body: {
-        productName: product.name,
-        sku: product.sku,
-        quantity: product.quantity,
-        minQuantity: product.minQuantity,
-        userEmail: session.user.email
-      }
-    });
-
-    if (error) throw error;
-  } catch (err) {
-    console.error("Failed to invoke low-stock email Edge Function:", err);
   }
 }
 
