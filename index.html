@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShopStock - Inventory Management</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Supabase JS SDK CDN -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- Demo Mode Banner -->
+  <div id="demoBanner" class="demo-banner" style="display: none;">
+    <div class="demo-banner-content">
+      <i data-lucide="info" style="width: 16px; height: 16px; min-width: 16px;"></i>
+      <span data-i18n="demo-banner-text">Mode Démo actif (Les données sont enregistrées localement sur cet appareil)</span>
+    </div>
+    <button class="btn btn-secondary" id="demoExitBtn" style="padding: 4px 10px; font-size: 0.75rem; margin-left: auto; height: 28px; background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.25); color: white; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+      <i data-lucide="log-in" style="width: 12px; height: 12px;"></i> <span data-i18n="demo-banner-login">Se connecter</span>
+    </button>
+  </div>
+
+  <!-- Authentication Overlay -->
+  <div class="auth-overlay active" id="authOverlay">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h2 id="authTitle" data-i18n="auth-login-title">Se connecter</h2>
+        <p id="authDesc" data-i18n="auth-login-desc">Entrez vos identifiants pour accéder à ShopStock.</p>
+      </div>
+      <form id="authForm" class="auth-form">
+        <div class="form-group">
+          <label for="authEmail" data-i18n="auth-email-label">Adresse e-mail</label>
+          <input type="email" id="authEmail" class="form-input" required placeholder="ex. contact@boutique.fr">
+        </div>
+        <div class="form-group" style="margin-top: 12px;">
+          <label for="authPassword" data-i18n="auth-password-label">Mot de passe</label>
+          <input type="password" id="authPassword" class="form-input" required placeholder="••••••••" minlength="6">
+        </div>
+        <div class="form-group shop-name-group" style="margin-top: 12px; display: none;">
+          <label for="authShopName" data-i18n="auth-shop-label">Nom de la boutique</label>
+          <input type="text" id="authShopName" class="form-input" placeholder="ex. Ma Super Boutique">
+        </div>
+        <button type="submit" class="btn btn-primary" id="authSubmitBtn" style="width: 100%; margin-top: 20px;" data-i18n="auth-btn-login">
+          Se connecter
+        </button>
+      </form>
+      <div class="auth-toggle" style="display: flex; flex-direction: column; gap: 8px; align-items: center; margin-top: 15px;">
+        <a href="#" id="authToggleLink" data-i18n="auth-toggle-signup">Pas de compte ? Créer un compte</a>
+        <a href="#" id="authDemoLink" style="font-size: 0.85rem; color: var(--text-secondary); text-decoration: none;" data-i18n="auth-try-demo">Tester la démo (Mode local)</a>
+        <a href="#" id="viewPricingLink" style="font-size: 0.85rem; color: var(--brand-primary); text-decoration: none; font-weight: 500;" data-i18n="auth-view-pricing">Voir les tarifs</a>
+      </div>
+      <div style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+        <a href="#" id="downloadInstallerBtn" class="btn btn-secondary" style="width: 100%; font-size: 0.85rem; justify-content: center; border-radius: 6px;">
+          <i data-lucide="download" style="width: 14px; height: 14px; margin-right: 6px;"></i>
+          <span data-i18n="download-desktop">Télécharger pour Windows (.exe)</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Header (Visible on small screens) -->
+  <header class="mobile-header">
+    <button class="menu-toggle" id="menuToggleBtn">
+      <i data-lucide="menu"></i>
+    </button>
+    <div class="sidebar-logo-container" style="width: 32px; height: 32px;">
+      <i data-lucide="boxes" style="width: 18px; height: 18px;"></i>
+    </div>
+    <span class="shop-name" id="mobileShopName" style="margin-right: auto; margin-left: 10px;">ShopStock</span>
+    <button class="icon-btn" id="mobileThemeToggle" title="Toggle Theme">
+      <i data-lucide="sun"></i>
+    </button>
+  </header>
+
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo-container">
+          <i data-lucide="boxes"></i>
+        </div>
+        <div class="sidebar-title-wrapper" style="overflow: hidden;">
+          <h1 class="shop-name" id="sidebarShopName">ShopStock</h1>
+          <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Inventory Hub</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a class="nav-link active" data-view="dashboard">
+          <i data-lucide="layout-dashboard"></i>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-link" data-view="inventory">
+          <i data-lucide="package"></i>
+          <span data-i18n="nav-products">Products</span>
+          <span class="badge badge-danger sidebar-badge" id="sidebarLowStockBadge" style="display: none; margin-left: auto; padding: 2px 6px; font-size: 0.7rem; border-radius: 4px;">0</span>
+        </a>
+        <a class="nav-link" data-view="transactions">
+          <i data-lucide="history"></i>
+          <span>History Log</span>
+        </a>
+        <a class="nav-link" data-view="categories">
+          <i data-lucide="tags"></i>
+          <span>Categories</span>
+        </a>
+        <a class="nav-link" data-view="settings">
+          <i data-lucide="settings"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer" style="display: flex; flex-direction: column; gap: 8px;">
+        <button class="theme-toggle-btn" id="themeToggleBtn">
+          <span data-i18n="theme-mode">Theme Mode</span>
+          <i data-lucide="moon" id="themeIcon"></i>
+        </button>
+        <button class="theme-toggle-btn" id="logoutBtn" style="border: 1px solid var(--border-color); background: transparent; color: #ef4444; justify-content: space-between; display: none;">
+          <span data-i18n="nav-logout">Déconnexion</span>
+          <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- ====================================================================
+           DASHBOARD VIEW
+           ==================================================================== -->
+      <section id="dashboard-view" class="view-panel active">
+        <div class="view-header">
+          <div class="view-title-container">
+            <h1 id="dashboardWelcome">Welcome to ShopStock</h1>
+            <p>Here is an overview of your shop's stock metrics.</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-primary" id="dashboardAddStockBtn">
+              <i data-lucide="plus-circle"></i> Add Product
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-info">
+              <h3>Total Products</h3>
+              <div class="kpi-value kpi-mono" id="kpiTotalProducts">0</div>
+              <p class="kpi-subtext" id="kpiTotalCategories">0 categories</p>
+            </div>
+            <div class="kpi-icon"><i data-lucide="package"></i></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-info">
+              <h3>Low Stock Alerts</h3>
+              <div class="kpi-value kpi-mono" id="kpiLowStock">0</div>
+              <p class="kpi-subtext critical" id="kpiLowStockSubtext">Requires attention</p>
+            </div>
+            <div class="kpi-icon"><i data-lucide="alert-triangle"></i></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-info">
+              <h3>Total Value (Cost)</h3>
+              <div class="kpi-value kpi-mono" id="kpiTotalCost">$0.00</div>
+              <p class="kpi-subtext" id="kpiRetailValue">Retail Value: $0.00</p>
+            </div>
+            <div class="kpi-icon"><i data-lucide="dollar-sign"></i></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-info">
+              <h3>Est. Profit Margin</h3>
+              <div class="kpi-value kpi-mono" id="kpiMargin">0%</div>
+              <p class="kpi-subtext profit" id="kpiProfitSub">Potential Profit: $0.00</p>
+            </div>
+            <div class="kpi-icon"><i data-lucide="trending-up"></i></div>
+          </div>
+        </div>
+
+        <!-- Dashboard Charts and List -->
+        <div class="dashboard-grid">
+          <!-- Charts Section -->
+          <div class="card">
+            <div class="card-header">
+              <h2>Inventory Analytics</h2>
+            </div>
+            <div class="card-content">
+              <div class="charts-container">
+                <div>
+                  <h4 style="font-size: 0.85rem; color: var(--text-secondary); text-align: center; margin-bottom: 12px;">Value by Category</h4>
+                  <div class="chart-wrapper">
+                    <canvas id="categoryChart"></canvas>
+                  </div>
+                </div>
+                <div>
+                  <h4 style="font-size: 0.85rem; color: var(--text-secondary); text-align: center; margin-bottom: 12px;">Stock Levels</h4>
+                  <div class="chart-wrapper">
+                    <canvas id="stockStatusChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Low Stock Action List -->
+          <div class="card">
+            <div class="card-header">
+              <h2>Low Stock Alerts</h2>
+              <span class="badge badge-danger" id="lowStockAlertBadge">0 items</span>
+            </div>
+            <div class="card-content">
+              <div class="low-stock-list" id="lowStockList">
+                <!-- Low Stock Items dynamic load -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           PRODUCTS VIEW
+           ==================================================================== -->
+      <section id="inventory-view" class="view-panel">
+        <div class="view-header">
+          <div class="view-title-container">
+            <h1>Product Catalog</h1>
+            <p>Manage and track all inventory items.</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-secondary" id="printInventoryBtn">
+              <i data-lucide="printer"></i> <span data-i18n="print-report">Print Report</span>
+            </button>
+            <button class="btn btn-primary" id="addProductBtn">
+              <i data-lucide="plus"></i> <span data-i18n="add-product">Add Product</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-content">
+            <!-- Toolbar for Search and filters -->
+            <div class="toolbar">
+              <div class="search-input-wrapper">
+                <i data-lucide="search"></i>
+                <input type="text" class="search-input" id="productSearch" placeholder="Search by name, SKU, or description...">
+              </div>
+              <div class="filter-wrapper">
+                <button class="btn btn-secondary" id="exportCsvBtn" title="Export to CSV">
+                  <i data-lucide="file-spreadsheet"></i> <span data-i18n="export-csv">Export CSV</span>
+                </button>
+                <select class="select-input" id="filterCategory">
+                  <option value="all">All Categories</option>
+                </select>
+                <select class="select-input" id="filterStockStatus">
+                  <option value="all">All Stock Status</option>
+                  <option value="ok">In Stock (Good)</option>
+                  <option value="low">Low Stock</option>
+                  <option value="out">Out of Stock</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Products Table -->
+            <div class="table-responsive">
+              <table class="data-table" id="productsTable">
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th style="text-align: right;">Cost Price</th>
+                    <th style="text-align: right;">Retail Price</th>
+                    <th style="text-align: center;">Stock Qty</th>
+                    <th style="text-align: center;">Margin</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="productsTableBody">
+                  <!-- Dynamic content -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ====================================================================
+           TRANSACTIONS VIEW
+           ==================================================================== -->
+      <section id="transactions-view" class="view-panel">
+        <div class="view-header">
+          <div class="view-title-container">
+            <h1>History Log</h1>
+            <p>Audit trail of all inventory additions, sales, and corrections.</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-secondary" id="clearHistoryBtn">
+              <i data-lucide="trash-2"></i> Clear Log
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-content">
+            <!-- Filter Toolbar -->
+            <div class="toolbar">
+              <div class="search-input-wrapper">
+                <i data-lucide="search"></i>
+                <input type="text" class="search-input" id="txSearch" placeholder="Search transactions by product or SKU...">
+              </div>
+              <div class="filter-wrapper">
+                <select class="select-input" id="filterTxType">
+                  <option value="all">All Transaction Types</option>
+                  <option value="in">Inbound (Stock In)</option>
+                  <option value="out">Outbound (Stock Out)</option>
+                  <option value="adjustment">Adjustments</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Transaction Table -->
+            <div class="table-responsive">
+              <table class="data-table" id="transactionsTable">
+                <thead>
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>Product Name</th>
+                    <th>SKU</th>
+                    <th>Type</th>
+                    <th style="text-align: center;">Qty Change</th>
+                    <th>Reason / Notes</th>
+                    <th style="text-align: right;"></th>
+                  </tr>
+                </thead>
+                <tbody id="transactionsTableBody">
+                  <!-- Dynamic content -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           CATEGORIES VIEW
+           ==================================================================== -->
+      <section id="categories-view" class="view-panel">
+        <div class="view-header">
+          <div class="view-title-container">
+            <h1>Product Categories</h1>
+            <p>Classify products to organize your stock and filter lists.</p>
+          </div>
+        </div>
+
+        <div class="category-settings-layout">
+          <!-- Add Category Card -->
+          <div class="card">
+            <div class="card-header">
+              <h2>Add New Category</h2>
+            </div>
+            <div class="card-content">
+              <form id="addCategoryForm">
+                <div class="form-group col-span-2">
+                  <label for="newCategoryName">Category Name</label>
+                  <input type="text" id="newCategoryName" class="form-input" placeholder="e.g. Footwear" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+                  <i data-lucide="plus"></i> Add Category
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Category List Card -->
+          <div class="card">
+            <div class="card-header">
+              <h2>Active Categories</h2>
+            </div>
+            <div class="card-content">
+              <div class="category-list" id="categoriesContainer">
+                <!-- Dynamic categories item list -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           SETTINGS VIEW
+           ==================================================================== -->
+      <section id="settings-view" class="view-panel">
+        <div class="view-header">
+          <div class="view-title-container">
+            <h1>Application Settings</h1>
+            <p>Configure preferences and manage inventory backup operations.</p>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <!-- Shop Details -->
+          <div class="card">
+            <div class="card-header">
+              <h2 data-i18n="settings-shop-customization">Shop Customization</h2>
+            </div>
+            <div class="card-content">
+              <form id="settingsForm">
+                <div class="form-group col-span-2">
+                  <label for="settingsShopName" data-i18n="shop-name">Shop Name</label>
+                  <input type="text" id="settingsShopName" class="form-input" placeholder="Shop Name">
+                </div>
+                <div class="form-group col-span-2">
+                  <label for="settingsCurrency" data-i18n="currency-symbol">Currency Symbol</label>
+                  <select id="settingsCurrency" class="select-input" style="width: 100%;">
+                    <option value="$">USD ($)</option>
+                    <option value="€">EUR (€)</option>
+                    <option value="£">GBP (£)</option>
+                    <option value="¥">Yen (¥)</option>
+                    <option value="R$">BRL (R$)</option>
+                    <option value="₹">INR (₹)</option>
+                  </select>
+                </div>
+                <div class="form-group col-span-2">
+                  <label for="settingsLanguage" data-i18n="language">Language</label>
+                  <select id="settingsLanguage" class="select-input" style="width: 100%;">
+                    <option value="en">English</option>
+                    <option value="fr">Français</option>
+                  </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;" data-i18n="save-shop-preferences">
+                  Save Shop Preferences
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Data Operations (Backup / Import) -->
+          <div class="card">
+            <div class="card-header">
+              <h2>Data Backup & Recovery</h2>
+            </div>
+            <div class="card-content">
+              <p class="settings-section-description">
+                Backup your inventory, categories, and audit trail regularly. All data is saved on your device and can be re-imported anytime.
+              </p>
+              
+              <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+                <button class="btn btn-secondary" id="settingsDownloadBtn" style="justify-content: flex-start;">
+                  <i data-lucide="monitor"></i> <span data-i18n="download-desktop-app">Télécharger l'app PC (Windows)</span>
+                </button>
+                <button class="btn btn-secondary" id="exportDataBtn" style="justify-content: flex-start;">
+                  <i data-lucide="download"></i> Export Data Backup (.json)
+                </button>
+                <div style="position: relative;">
+                  <input type="file" id="importDataInput" accept=".json" style="display: none;">
+                  <button class="btn btn-secondary" id="importDataBtn" style="width: 100%; justify-content: flex-start;">
+                    <i data-lucide="upload"></i> Import Data Backup (.json)
+                  </button>
+                </div>
+              </div>
+
+              <!-- Reset Panel (Danger Zone) -->
+              <div class="danger-zone">
+                <h3 class="danger-zone-header">Danger Zone</h3>
+                <p class="settings-section-description" style="margin-bottom: 16px;">
+                  Resetting will wipe all inventory transactions and custom products. You can choose to load the sample demo mock data instead.
+                </p>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                  <button class="btn btn-danger" id="resetMockBtn">
+                    <i data-lucide="refresh-cw"></i> Reset to Sample Demo
+                  </button>
+                  <button class="btn btn-danger" id="wipeAllBtn" style="background-color: transparent; border-color: var(--danger); color: var(--danger);">
+                    <i data-lucide="trash-2"></i> Wipe All Data
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ====================================================================
+       MODAL DIALOGS
+       ==================================================================== -->
+  
+  <!-- Add/Edit Product Modal -->
+  <div class="modal-overlay" id="productModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="productModalTitle">Add New Product</h2>
+        <button class="close-btn modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <form id="productForm">
+        <div class="modal-body">
+          <input type="hidden" id="prodId">
+          <div class="form-grid">
+            <div class="form-group col-span-2">
+              <label for="prodName">Product Name *</label>
+              <input type="text" id="prodName" class="form-input" placeholder="e.g. Wireless Charger" required>
+            </div>
+            <div class="form-group">
+              <label for="prodSku">SKU / Barcode *</label>
+              <input type="text" id="prodSku" class="form-input" placeholder="e.g. WRLS-CHG" required>
+            </div>
+            <div class="form-group">
+              <label for="prodCategory">Category *</label>
+              <select id="prodCategory" class="select-input" style="width: 100%;" required>
+                <!-- Filled dynamically -->
+              </select>
+            </div>
+            <div class="form-group col-span-2">
+              <label for="prodDesc">Description</label>
+              <textarea id="prodDesc" class="form-input" placeholder="Enter short details about the product..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="prodCost">Buying Price (Cost) *</label>
+              <input type="number" id="prodCost" class="form-input" step="0.01" min="0" placeholder="0.00" required>
+            </div>
+            <div class="form-group">
+              <label for="prodRetail">Selling Price (Retail) *</label>
+              <input type="number" id="prodRetail" class="form-input" step="0.01" min="0" placeholder="0.00" required>
+            </div>
+            <div class="form-group" id="initialQtyGroup">
+              <label for="prodQty">Initial Stock Qty *</label>
+              <input type="number" id="prodQty" class="form-input" min="0" value="0" placeholder="0" required>
+            </div>
+            <div class="form-group">
+              <label for="prodMin">Min Stock Limit (Reorder Point) *</label>
+              <input type="number" id="prodMin" class="form-input" min="0" value="5" placeholder="5" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveProductBtn">Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Stock Adjustment Modal -->
+  <div class="modal-overlay" id="adjustmentModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Adjust Product Stock</h2>
+        <button class="close-btn modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <form id="adjustmentForm">
+        <div class="modal-body">
+          <input type="hidden" id="adjustProdId">
+          <div class="form-group">
+            <label>Product Name</label>
+            <input type="text" id="adjustProdName" class="form-input" readonly style="background-color: var(--bg-app); cursor: not-allowed;">
+          </div>
+          
+          <div class="form-grid" style="margin-top: 12px;">
+            <div class="form-group">
+              <label>Current Stock Qty</label>
+              <input type="text" id="adjustCurrentQty" class="form-input" readonly style="background-color: var(--bg-app); cursor: not-allowed; font-family: var(--font-mono); font-weight: bold;">
+            </div>
+            <div class="form-group">
+              <label for="adjustType">Adjustment Type</label>
+              <select id="adjustType" class="select-input" style="width: 100%;">
+                <option value="in">Add Stock (+)</option>
+                <option value="out">Reduce / Write off (-)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="adjustQty">Quantity Change *</label>
+              <input type="number" id="adjustQty" class="form-input" min="1" placeholder="Enter amount" required>
+            </div>
+            <div class="form-group">
+              <label for="adjustReason">Reason for Change *</label>
+              <select id="adjustReason" class="select-input" style="width: 100%;" required>
+                <!-- Populated dynamically based on In/Out -->
+              </select>
+            </div>
+            <div class="form-group col-span-2">
+              <label for="adjustNotes">Additional Notes</label>
+              <input type="text" id="adjustNotes" class="form-input" placeholder="e.g. Supplier invoice #3991, or custom sale info">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+          <button type="submit" class="btn btn-primary">Process Adjustment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Pricing Modal -->
+  <div class="modal-overlay" id="pricingModal">
+    <div class="modal" style="max-width: 620px; background-color: var(--bg-card);">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
+        <h2 data-i18n="pricing-title">Tarifs ShopStock</h2>
+        <button class="close-btn modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="padding: 20px 0;">
+        <div class="pricing-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; padding: 0 10px;">
+          <div class="pricing-card" style="border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; background-color: var(--bg-app); display: flex; flex-direction: column; gap: 15px; position: relative;">
+            <h3 style="font-size: 1.2rem; font-weight: bold;" data-i18n="price-free-title">Local Solo</h3>
+            <div class="price" style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary);">0€ <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-secondary);" data-i18n="price-period-forever">/ à vie</span></div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;" data-i18n="price-free-desc">Pour un usage autonome sur un seul ordinateur.</p>
+            <ul class="pricing-features-list" style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; margin-top: 10px; font-size: 0.85rem; flex-grow: 1;">
+              <li style="display: flex; align-items: center; gap: 8px;"><i data-lucide="check" style="color: var(--success); width: 16px; height: 16px;"></i><span data-i18n="price-feat-products">Produits illimités</span></li>
+              <li style="display: flex; align-items: center; gap: 8px;"><i data-lucide="check" style="color: var(--success); width: 16px; height: 16px;"></i><span data-i18n="price-feat-local">Stockage local sécurisé</span></li>
+              <li style="display: flex; align-items: center; gap: 8px;"><i data-lucide="check" style="color: var(--success); width: 16px; height: 16px;"></i><span data-i18n="price-feat-backup">Export CSV et sauvegarde JSON</span></li>
+              <li class="muted" style="display: flex; align-items: center; gap: 8px; opacity: 0.5;"><i data-lucide="x" style="color: var(--danger); width: 16px; height: 16px;"></i><span data-i18n="price-feat-cloud">Pas de synchronisation cloud</span></li>
+              <li class="muted" style="display: flex; align-items: center; gap: 8px; opacity: 0.5;"><i data-lucide="x" style="color: var(--danger); width: 16px; height: 16px;"></i><span data-i18n="price-feat-devices">Un seul appareil</span></li>
+            </ul>
+            <button class="btn btn-secondary pricing-select-btn" data-plan="free" style="width: 100%; justify-content: center; margin-top: 10px;" data-i18n="price-btn-free">Activer Mode Démo</button>
+          </div>
+          <div class="pricing-card premium" style="border: 2px solid var(--brand-primary); border-radius: var(--radius-lg); padding: 24px; background-color: var(--bg-card); display: flex; flex-direction: column; gap: 15px; position: relative; box-shadow: var(--shadow-md);">
+            <div class="premium-badge" style="position: absolute; top: -12px; right: 20px; background-color: var(--brand-primary); color: white; font-size: 0.7rem; font-weight: bold; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="price-badge-pop">Recommandé</div>
+            <h3 style="font-size: 1.2rem; font-weight: bold; color: var(--brand-primary);" data-i18n="price-cloud-title">Cloud Sync</h3>
+            <div class="price" style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary);">9.99€ <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-secondary);" data-i18n="price-period-month">/ mois</span></div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;" data-i18n="price-cloud-desc">Synchronisez vos stocks en temps réel sur PC et mobiles.</p>
+            <ul class="pricing-features-list" style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; margin-top: 10px; font-size: 0.85rem; flex-grow: 1;">
+              <li style="display: flex; align-items: center; gap: 8px;"><i data-lucide="check" style="color: var(--success); width: 16px; height: 16px;"></i><span data-i18n="price-feat-products">Produits illimités</span></li>
+              <li style="display: flex; align-items: center; gap: 8px;"><i data-lucide="check" style="color: var(--success); width: 16px; height: 16px;"></i><span data-i18n="price-feat-sync">Synchronisation cloud (Supabase)</span></li>
+              <li style="display: flex; align-items: center; gap: 8px;"><i data-lucide="check" style="color: var(--success); width: 16px; height: 16px;"></i><span data-i18n="price-feat-devices-unlimited">Appareils illimités (PC, mobiles)</span></li>
+              <li style="display: flex; align-items: center; gap: 8px;"><i data-lucide="check" style="color: var(--success); width: 16px; height: 16px;"></i><span data-i18n="price-feat-backup">Sauvegardes automatiques</span></li>
+              <li style="display: flex; align-items: center; gap: 8px;"><i data-lucide="check" style="color: var(--success); width: 16px; height: 16px;"></i><span data-i18n="price-feat-support">Support prioritaire</span></li>
+            </ul>
+            <button class="btn btn-primary pricing-select-btn" data-plan="cloud" style="width: 100%; justify-content: center; margin-top: 10px;" data-i18n="price-btn-subscribe">S'abonner</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Toast Message container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Hidden print area container -->
+  <div id="printArea" class="print-only"></div>
+
+  <!-- Main script loader -->
+  <script type="module" src="app.js"></script>
+
+</body>
+</html>

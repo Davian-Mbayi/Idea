@@ -1,0 +1,41 @@
+{
+  "name": "shopstock",
+  "version": "1.0.0",
+  "description": "ShopStock - Offline-First Inventory Management for Small Shops",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "keywords": [
+    "inventory",
+    "pos",
+    "shopstock",
+    "desktop"
+  ],
+  "author": "Antigravity",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^28.2.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.shopstock.app",
+    "productName": "ShopStock",
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!dist/**/*",
+      "!node_modules/**/*"
+    ]
+  }
+}
