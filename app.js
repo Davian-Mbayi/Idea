@@ -2762,9 +2762,18 @@ document.addEventListener('DOMContentLoaded', () => {
               currency: "$",
               language: state.settings.language || "fr"
             });
+
+            // Set shop name locally
+            state.settings.shopName = shopName;
+            saveState();
+
+            // Update UI headers
+            document.getElementById('mobileShopName').textContent = shopName;
+            document.getElementById('sidebarShopName').textContent = shopName;
           }
           
           showToast(t('toast-signup-success'), "success");
+          await checkUserSession();
         } else {
           const { error } = await supabase.auth.signInWithPassword({
             email,
