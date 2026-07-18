@@ -7,7 +7,7 @@
 // ==========================================================================
 const SUPABASE_URL = "https://youqcojurypydzjfhlqq.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvdXFjb2p1cnlweWR6amZobHFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDY4MTQsImV4cCI6MjA5Nzk4MjgxNH0.XJ27UrijnJb33MUlMCzu_D1Z2m9JfwI_XYjG0IXEI84";
-const DOWNLOAD_INSTALLER_URL = "dist/ShopStock Setup 1.0.0.exe"; // Path to compiled desktop installer
+const DOWNLOAD_INSTALLER_URL = "https://github.com/Davian-Mbayi/Idea/releases/download/V.1.0.2/ShopStock.Setup.1.0.0.exe"; // Path to compiled desktop installer
 
 let supabase = null;
 let isCloudEnabled = false;
