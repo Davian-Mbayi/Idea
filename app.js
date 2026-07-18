@@ -9,11 +9,12 @@ import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_TRANSACTIONS } from './mock-data.j
 // ==========================================================================
 const SUPABASE_URL = "https://youqcojurypydzjfhlqq.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvdXFjb2p1cnlweWR6amZobHFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDY4MTQsImV4cCI6MjA5Nzk4MjgxNH0.XJ27UrijnJb33MUlMCzu_D1Z2m9JfwI_XYjG0IXEI84";
-const DOWNLOAD_INSTALLER_URL = "https://github.com/Davian-Mbayi/Idea/releases/download/V1.0.1/ShopStock.Setup.1.0.0.exe"; // Path to compiled desktop installer
+const DOWNLOAD_INSTALLER_URL = "dist/ShopStock Setup 1.0.0.exe"; // Path to compiled desktop installer
 
 let supabase = null;
 let isCloudEnabled = false;
 let isDemoMode = false;
+let html5QrCode = null;
 
 if (SUPABASE_URL !== "YOUR_SUPABASE_URL" && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY") {
   try {
@@ -271,7 +272,12 @@ const TRANSLATIONS = {
     'demo-banner-text': "Demo Mode active (Data is saved locally on this device)",
     'demo-banner-login': "Sign In",
     'notification-low-stock-title': "Low Stock Alert",
-    'toast-demo-activated': "Demo Mode activated!"
+    'toast-demo-activated': "Demo Mode activated!",
+    'scanner-title': "Scan QR Code / Barcode",
+    'scanner-camera-label': "Select Camera",
+    'scanner-instructions': "Place the barcode / QR code inside the frame to scan it.",
+    'toast-scanner-permission-denied': "Camera access was denied.",
+    'toast-scanner-not-found': "Product with SKU '{sku}' was not found. Would you like to create it?"
   },
   fr: {
     // Navigation
@@ -511,7 +517,12 @@ const TRANSLATIONS = {
     'demo-banner-text': "Mode Démo actif (Les données sont enregistrées localement sur cet appareil)",
     'demo-banner-login': "Se connecter",
     'notification-low-stock-title': "Alerte Stock Bas",
-    'toast-demo-activated': "Mode Démo activé !"
+    'toast-demo-activated': "Mode Démo activé !",
+    'scanner-title': "Scanner QR Code / Code-barres",
+    'scanner-camera-label': "Sélectionner la caméra",
+    'scanner-instructions': "Placez le code-barres / QR code dans le cadre pour le scanner.",
+    'toast-scanner-permission-denied': "L'accès à la caméra a été refusé.",
+    'toast-scanner-not-found': "Produit avec le SKU '{sku}' non trouvé. Voulez-vous le créer ?"
   }
 };
 
@@ -1891,6 +1902,93 @@ function openModal(modalId) {
   }
 }
 
+async function startQrScanner(onSuccessCallback) {
+  const cameraSelect = document.getElementById('cameraSelect');
+  if (!cameraSelect) return;
+
+  cameraSelect.innerHTML = '';
+
+  try {
+    const devices = await Html5Qrcode.getCameras();
+    if (!devices || devices.length === 0) {
+      showToast("No cameras found.", "danger");
+      return;
+    }
+
+    devices.forEach((device, index) => {
+      const option = document.createElement('option');
+      option.value = device.id;
+      option.textContent = device.label || `Camera ${index + 1}`;
+      cameraSelect.appendChild(option);
+    });
+
+    let selectedCameraId = devices[0].id;
+    const backCamera = devices.find(device => 
+      device.label.toLowerCase().includes('back') || 
+      device.label.toLowerCase().includes('arrière') ||
+      device.label.toLowerCase().includes('environment')
+    );
+    if (backCamera) {
+      selectedCameraId = backCamera.id;
+      cameraSelect.value = selectedCameraId;
+    }
+
+    html5QrCode = new Html5Qrcode("qrReader");
+
+    const startScanning = async (cameraId) => {
+      try {
+        await html5QrCode.start(
+          cameraId,
+          {
+            fps: 10,
+            qrbox: (width, height) => {
+              const size = Math.min(width, height) * 0.75;
+              return { width: size, height: size };
+            }
+          },
+          (decodedText, decodedResult) => {
+            onSuccessCallback(decodedText);
+            stopQrScanner();
+            closeModal('qrScannerModal');
+          },
+          (errorMessage) => {
+            // Keep verbose scanner logging quiet
+          }
+        );
+      } catch (err) {
+        console.error("Error starting camera stream:", err);
+      }
+    };
+
+    cameraSelect.onchange = async () => {
+      if (html5QrCode && html5QrCode.isScanning) {
+        await html5QrCode.stop();
+        startScanning(cameraSelect.value);
+      }
+    };
+
+    openModal('qrScannerModal');
+    await startScanning(selectedCameraId);
+
+  } catch (err) {
+    console.error("Camera access failed:", err);
+    showToast(t('toast-scanner-permission-denied') || "Camera access denied.", "danger");
+  }
+}
+
+async function stopQrScanner() {
+  if (html5QrCode) {
+    try {
+      if (html5QrCode.isScanning) {
+        await html5QrCode.stop();
+      }
+    } catch (err) {
+      console.warn("Failed to stop scanner cleanly:", err);
+    }
+    html5QrCode = null;
+  }
+}
+
 function closeModal(modalId) {
   document.getElementById(modalId).classList.remove('active');
 }
@@ -1912,6 +2010,9 @@ function setupModalListeners() {
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
         overlay.classList.remove('active');
+        if (overlay.id === 'qrScannerModal') {
+          stopQrScanner();
+        }
       }
     });
   });
@@ -2950,6 +3051,54 @@ document.addEventListener('DOMContentLoaded', () => {
       navigator.serviceWorker.register('sw.js')
         .then(reg => console.log('Service Worker registered successfully!', reg))
         .catch(err => console.error('Service Worker registration failed:', err));
+    });
+  }
+
+  // QR Code Scanner event listeners
+  const inventoryScanBtn = document.getElementById('inventoryScanBtn');
+  if (inventoryScanBtn) {
+    inventoryScanBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      startQrScanner((scannedText) => {
+        console.log("Scanned SKU/ID from inventory search:", scannedText);
+        const matchedProduct = state.products.find(p => p.sku === scannedText || p.id === scannedText);
+        if (matchedProduct) {
+          showToast(`Produit scanné : ${matchedProduct.name}`, "success");
+          openAdjustmentModal(matchedProduct.id, "in");
+        } else {
+          const createConfirm = confirm(
+            (t('toast-scanner-not-found') || "Produit non trouvé. Voulez-vous créer un nouveau produit pour le SKU '{sku}' ?").replace('{sku}', scannedText)
+          );
+          if (createConfirm) {
+            openProductModal(null);
+            const skuInput = document.getElementById('prodSku');
+            if (skuInput) skuInput.value = scannedText;
+          }
+        }
+      });
+    });
+  }
+
+  const skuScanBtn = document.getElementById('skuScanBtn');
+  if (skuScanBtn) {
+    skuScanBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      startQrScanner((scannedText) => {
+        console.log("Scanned SKU for form input:", scannedText);
+        const skuInput = document.getElementById('prodSku');
+        if (skuInput) {
+          skuInput.value = scannedText;
+          showToast(`SKU enregistré : ${scannedText}`, "success");
+        }
+      });
+    });
+  }
+
+  const qrScannerCloseBtn = document.getElementById('qrScannerCloseBtn');
+  if (qrScannerCloseBtn) {
+    qrScannerCloseBtn.addEventListener('click', () => {
+      stopQrScanner();
+      closeModal('qrScannerModal');
     });
   }
 

@@ -19,6 +19,8 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Supabase JS SDK CDN -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <!-- HTML5 QR Code CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
 
@@ -253,9 +255,12 @@
           <div class="card-content">
             <!-- Toolbar for Search and filters -->
             <div class="toolbar">
-              <div class="search-input-wrapper">
+              <div class="search-input-wrapper" style="position: relative; display: flex; align-items: center; width: 100%; max-width: 320px;">
                 <i data-lucide="search"></i>
-                <input type="text" class="search-input" id="productSearch" placeholder="Search by name, SKU, or description...">
+                <input type="text" class="search-input" id="productSearch" placeholder="Search by name, SKU, or description..." style="padding-right: 40px; width: 100%;">
+                <button type="button" id="inventoryScanBtn" style="position: absolute; right: 10px; background: none; border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center;" title="Scan QR Code">
+                  <i data-lucide="camera" style="width: 18px; height: 18px;"></i>
+                </button>
               </div>
               <div class="filter-wrapper">
                 <button class="btn btn-secondary" id="exportCsvBtn" title="Export to CSV">
@@ -519,7 +524,12 @@
             </div>
             <div class="form-group">
               <label for="prodSku">SKU / Barcode *</label>
-              <input type="text" id="prodSku" class="form-input" placeholder="e.g. WRLS-CHG" required>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="prodSku" class="form-input" placeholder="e.g. WRLS-CHG" required style="flex-grow: 1;">
+                <button type="button" id="skuScanBtn" class="btn btn-secondary" style="padding: 0 12px; height: 38px; border-radius: var(--radius-md); display: inline-flex; align-items: center; justify-content: center;" title="Scan QR Code">
+                  <i data-lucide="camera" style="width: 16px; height: 16px;"></i>
+                </button>
+              </div>
             </div>
             <div class="form-group">
               <label for="prodCategory">Category *</label>
@@ -605,6 +615,34 @@
           <button type="submit" class="btn btn-primary">Process Adjustment</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- QR Scanner Modal -->
+  <div class="modal-overlay" id="qrScannerModal">
+    <div class="modal" style="max-width: 450px; background-color: var(--bg-card);">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
+        <h2 data-i18n="scanner-title">Scanner QR Code / Code-barres</h2>
+        <button class="close-btn modal-close" id="qrScannerCloseBtn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="padding: 20px 0; display: flex; flex-direction: column; gap: 15px; align-items: center;">
+        
+        <div class="camera-select-container" style="width: 100%; display: flex; flex-direction: column; gap: 6px; padding: 0 10px;">
+          <label for="cameraSelect" style="font-size: 0.85rem; color: var(--text-secondary);" data-i18n="scanner-camera-label">Sélectionner la caméra</label>
+          <select id="cameraSelect" class="select-input" style="width: 100%;">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <div class="scanner-frame" style="width: 100%; max-width: 320px; aspect-ratio: 1/1; overflow: hidden; border-radius: var(--radius-md); border: 2px solid var(--border-color); background-color: #000; position: relative;">
+          <div id="qrReader" style="width: 100%; height: 100%;"></div>
+          <div class="scanner-laser"></div>
+        </div>
+
+        <p style="font-size: 0.85rem; color: var(--text-secondary); text-align: center; padding: 0 10px;" data-i18n="scanner-instructions">
+          Placez le code QR dans le cadre pour le scanner automatiquement.
+        </p>
+      </div>
     </div>
   </div>
 
