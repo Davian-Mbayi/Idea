@@ -2,8 +2,6 @@
    ShopStock - Inventory Management Core JavaScript
    ========================================================================== */
 
-import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_TRANSACTIONS } from './mock-data.js';
-
 // ==========================================================================
 // SUPABASE CLOUD DATABASE CONFIGURATION
 // ==========================================================================
@@ -13,7 +11,6 @@ const DOWNLOAD_INSTALLER_URL = "dist/ShopStock Setup 1.0.0.exe"; // Path to comp
 
 let supabase = null;
 let isCloudEnabled = false;
-let isDemoMode = false;
 let html5QrCode = null;
 
 if (SUPABASE_URL !== "YOUR_SUPABASE_URL" && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY") {
@@ -561,10 +558,20 @@ function loadState() {
       if (!state.settings.language) state.settings.language = "fr";
     } catch (e) {
       console.error("Failed to parse stored state. Loading defaults...", e);
-      loadMockData();
+      state.products = [];
+      state.categories = [];
+      state.transactions = [];
     }
   } else {
-    loadMockData();
+    state.products = [];
+    state.categories = [];
+    state.transactions = [];
+    state.settings = {
+      shopName: "My Shop",
+      currency: "$",
+      language: state.settings.language || "fr"
+    };
+    saveState();
   }
   updateSidebarBadges();
 }
@@ -572,19 +579,6 @@ function loadState() {
 function saveState() {
   localStorage.setItem('shopstock_state', JSON.stringify(state));
   updateSidebarBadges();
-}
-
-function loadMockData() {
-  state.categories = [...MOCK_CATEGORIES];
-  state.products = [...MOCK_PRODUCTS];
-  state.transactions = [...MOCK_TRANSACTIONS];
-  state.settings = {
-    shopName: "ShopStock Store",
-    currency: "$",
-    language: state.settings.language || "fr"
-  };
-  saveState();
-  showToast(t('toast-demo-loaded'), "success");
 }
 
 function wipeAllData() {
@@ -753,7 +747,6 @@ function translatePage() {
   
   setText('#settings-view .danger-zone-header', 'settings-danger-zone');
   setText('#settings-view .danger-zone .settings-section-description', 'settings-danger-desc');
-  setText('#resetMockBtn', 'settings-reset-demo');
   setText('#wipeAllBtn', 'settings-wipe-data');
 
   // 7. Product Modal
@@ -2088,15 +2081,7 @@ function setupBackupListeners() {
     reader.readAsText(file);
   });
 
-  document.getElementById('resetMockBtn').addEventListener('click', () => {
-    if (confirm(t('confirm-reset-demo'))) {
-      loadMockData();
-      translatePage();
-      const activePanel = document.querySelector('.view-panel.active');
-      const activeView = activePanel.id.replace('-view', '');
-      refreshViewData(activeView);
-    }
-  });
+
 
   document.getElementById('wipeAllBtn').addEventListener('click', () => {
     if (confirm(t('confirm-wipe-all'))) {
@@ -2507,7 +2492,7 @@ function queueSyncAction(type, operation, payload) {
 
 // Background sync queue execution worker
 async function processSyncQueue() {
-  if (!isCloudEnabled || isDemoMode || !navigator.onLine || !state.syncQueue || state.syncQueue.length === 0) return;
+  if (!isCloudEnabled || !navigator.onLine || !state.syncQueue || state.syncQueue.length === 0) return;
 
   console.log(`Processing sync queue containing ${state.syncQueue.length} actions...`);
   
@@ -2598,7 +2583,7 @@ async function processSyncQueue() {
 window.addEventListener('online', processSyncQueue);
 
 async function syncProductToCloud(product, isDelete = false) {
-  if (!isCloudEnabled || isDemoMode) return;
+  if (!isCloudEnabled) return;
 
   if (!navigator.onLine) {
     queueSyncAction('product', isDelete ? 'delete' : 'upsert', product);
@@ -2632,7 +2617,7 @@ async function syncProductToCloud(product, isDelete = false) {
 }
 
 async function syncTransactionToCloud(tx) {
-  if (!isCloudEnabled || isDemoMode) return;
+  if (!isCloudEnabled) return;
 
   if (!navigator.onLine) {
     queueSyncAction('transaction', 'upsert', tx);
@@ -2661,7 +2646,7 @@ async function syncTransactionToCloud(tx) {
 }
 
 async function syncCategoryToCloud(catName, isDelete = false) {
-  if (!isCloudEnabled || isDemoMode) return;
+  if (!isCloudEnabled) return;
 
   if (!navigator.onLine) {
     queueSyncAction('category', isDelete ? 'delete' : 'insert', catName);
@@ -2683,7 +2668,7 @@ async function syncCategoryToCloud(catName, isDelete = false) {
 }
 
 async function syncSettingsToCloud(settings) {
-  if (!isCloudEnabled || isDemoMode) return;
+  if (!isCloudEnabled) return;
 
   if (!navigator.onLine) {
     queueSyncAction('settings', 'upsert', settings);
@@ -2707,7 +2692,6 @@ async function syncSettingsToCloud(settings) {
 }
 
 async function checkUserSession() {
-  if (isDemoMode) return;
   if (!isCloudEnabled) {
     const authOverlay = document.getElementById('authOverlay');
     if (authOverlay) authOverlay.classList.remove('active');
@@ -2905,11 +2889,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
-      if (isDemoMode) {
-        const demoExitBtn = document.getElementById('demoExitBtn');
-        if (demoExitBtn) demoExitBtn.click();
-        return;
-      }
       if (isCloudEnabled) {
         await supabase.auth.signOut();
         
@@ -2933,51 +2912,6 @@ document.addEventListener('DOMContentLoaded', () => {
     Notification.requestPermission();
   }
 
-  // Interactive Demo handlers
-  const authDemoLink = document.getElementById('authDemoLink');
-  if (authDemoLink) {
-    authDemoLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      isDemoMode = true;
-      
-      const authOverlay = document.getElementById('authOverlay');
-      if (authOverlay) authOverlay.classList.remove('active');
-      
-      document.body.classList.add('demo-active');
-      const demoBanner = document.getElementById('demoBanner');
-      if (demoBanner) demoBanner.style.display = 'flex';
-      
-      showToast(t('toast-demo-activated'), "success");
-      
-      // Load local state & populate mockup if empty
-      loadState();
-      if (state.products.length === 0) {
-        resetToMockData();
-      }
-      
-      refreshViewData('dashboard');
-    });
-  }
-
-  const demoExitBtn = document.getElementById('demoExitBtn');
-  if (demoExitBtn) {
-    demoExitBtn.addEventListener('click', () => {
-      isDemoMode = false;
-      document.body.classList.remove('demo-active');
-      const demoBanner = document.getElementById('demoBanner');
-      if (demoBanner) demoBanner.style.display = 'none';
-      
-      const authOverlay = document.getElementById('authOverlay');
-      if (authOverlay) authOverlay.classList.add('active');
-      
-      // Wipe state in memory to prevent leaked demo data
-      state.products = [];
-      state.categories = [];
-      state.transactions = [];
-      refreshViewData('dashboard');
-    });
-  }
-
   // Pricing Modal handlers
   const viewPricingLink = document.getElementById('viewPricingLink');
   if (viewPricingLink) {
@@ -2992,10 +2926,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => {
       const plan = btn.getAttribute('data-plan');
       closeModal('pricingModal');
-      if (plan === 'free') {
-        const demoLink = document.getElementById('authDemoLink');
-        if (demoLink) demoLink.click();
-      } else if (plan === 'cloud') {
+      if (plan === 'cloud') {
         const toggleLink = document.getElementById('authToggleLink');
         if (toggleLink) {
           const authTitle = document.getElementById('authTitle');

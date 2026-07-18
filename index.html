@@ -24,17 +24,6 @@
 </head>
 <body>
 
-  <!-- Demo Mode Banner -->
-  <div id="demoBanner" class="demo-banner" style="display: none;">
-    <div class="demo-banner-content">
-      <i data-lucide="info" style="width: 16px; height: 16px; min-width: 16px;"></i>
-      <span data-i18n="demo-banner-text">Mode Démo actif (Les données sont enregistrées localement sur cet appareil)</span>
-    </div>
-    <button class="btn btn-secondary" id="demoExitBtn" style="padding: 4px 10px; font-size: 0.75rem; margin-left: auto; height: 28px; background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.25); color: white; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
-      <i data-lucide="log-in" style="width: 12px; height: 12px;"></i> <span data-i18n="demo-banner-login">Se connecter</span>
-    </button>
-  </div>
-
   <!-- Authentication Overlay -->
   <div class="auth-overlay active" id="authOverlay">
     <div class="auth-card">
@@ -61,7 +50,6 @@
       </form>
       <div class="auth-toggle" style="display: flex; flex-direction: column; gap: 8px; align-items: center; margin-top: 15px;">
         <a href="#" id="authToggleLink" data-i18n="auth-toggle-signup">Pas de compte ? Créer un compte</a>
-        <a href="#" id="authDemoLink" style="font-size: 0.85rem; color: var(--text-secondary); text-decoration: none;" data-i18n="auth-try-demo">Tester la démo (Mode local)</a>
         <a href="#" id="viewPricingLink" style="font-size: 0.85rem; color: var(--brand-primary); text-decoration: none; font-weight: 500;" data-i18n="auth-view-pricing">Voir les tarifs</a>
       </div>
       <div style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
@@ -481,15 +469,12 @@
 
               <!-- Reset Panel (Danger Zone) -->
               <div class="danger-zone">
-                <h3 class="danger-zone-header">Danger Zone</h3>
-                <p class="settings-section-description" style="margin-bottom: 16px;">
-                  Resetting will wipe all inventory transactions and custom products. You can choose to load the sample demo mock data instead.
+                <h3 class="danger-zone-header" data-i18n="danger-zone">Danger Zone</h3>
+                <p class="settings-section-description" style="margin-bottom: 16px;" data-i18n="danger-zone-desc">
+                  Cette action supprimera définitivement tous vos produits, catégories et historique de transactions de cet appareil.
                 </p>
                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                  <button class="btn btn-danger" id="resetMockBtn">
-                    <i data-lucide="refresh-cw"></i> Reset to Sample Demo
-                  </button>
-                  <button class="btn btn-danger" id="wipeAllBtn" style="background-color: transparent; border-color: var(--danger); color: var(--danger);">
+                  <button class="btn btn-danger" id="wipeAllBtn" style="width: 100%; justify-content: center; background-color: transparent; border-color: var(--danger); color: var(--danger);">
                     <i data-lucide="trash-2"></i> Wipe All Data
                   </button>
                 </div>
@@ -654,21 +639,8 @@
         <button class="close-btn modal-close"><i data-lucide="x"></i></button>
       </div>
       <div class="modal-body" style="padding: 20px 0;">
-        <div class="pricing-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; padding: 0 10px;">
-          <div class="pricing-card" style="border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; background-color: var(--bg-app); display: flex; flex-direction: column; gap: 15px; position: relative;">
-            <h3 style="font-size: 1.2rem; font-weight: bold;" data-i18n="price-free-title">Local Solo</h3>
-            <div class="price" style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary);">0€ <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-secondary);" data-i18n="price-period-forever">/ à vie</span></div>
-            <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;" data-i18n="price-free-desc">Pour un usage autonome sur un seul ordinateur.</p>
-            <ul class="pricing-features-list" style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; margin-top: 10px; font-size: 0.85rem; flex-grow: 1;">
-              <li style="display: flex; align-items: center; gap: 8px;"><i data-lucide="check" style="color: var(--success); width: 16px; height: 16px;"></i><span data-i18n="price-feat-products">Produits illimités</span></li>
-              <li style="display: flex; align-items: center; gap: 8px;"><i data-lucide="check" style="color: var(--success); width: 16px; height: 16px;"></i><span data-i18n="price-feat-local">Stockage local sécurisé</span></li>
-              <li style="display: flex; align-items: center; gap: 8px;"><i data-lucide="check" style="color: var(--success); width: 16px; height: 16px;"></i><span data-i18n="price-feat-backup">Export CSV et sauvegarde JSON</span></li>
-              <li class="muted" style="display: flex; align-items: center; gap: 8px; opacity: 0.5;"><i data-lucide="x" style="color: var(--danger); width: 16px; height: 16px;"></i><span data-i18n="price-feat-cloud">Pas de synchronisation cloud</span></li>
-              <li class="muted" style="display: flex; align-items: center; gap: 8px; opacity: 0.5;"><i data-lucide="x" style="color: var(--danger); width: 16px; height: 16px;"></i><span data-i18n="price-feat-devices">Un seul appareil</span></li>
-            </ul>
-            <button class="btn btn-secondary pricing-select-btn" data-plan="free" style="width: 100%; justify-content: center; margin-top: 10px;" data-i18n="price-btn-free">Activer Mode Démo</button>
-          </div>
-          <div class="pricing-card premium" style="border: 2px solid var(--brand-primary); border-radius: var(--radius-lg); padding: 24px; background-color: var(--bg-card); display: flex; flex-direction: column; gap: 15px; position: relative; box-shadow: var(--shadow-md);">
+        <div style="display: flex; justify-content: center; padding: 0 10px;">
+          <div class="pricing-card premium" style="border: 2px solid var(--brand-primary); border-radius: var(--radius-lg); padding: 24px; background-color: var(--bg-card); display: flex; flex-direction: column; gap: 15px; position: relative; box-shadow: var(--shadow-md); max-width: 360px; width: 100%;">
             <div class="premium-badge" style="position: absolute; top: -12px; right: 20px; background-color: var(--brand-primary); color: white; font-size: 0.7rem; font-weight: bold; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="price-badge-pop">Recommandé</div>
             <h3 style="font-size: 1.2rem; font-weight: bold; color: var(--brand-primary);" data-i18n="price-cloud-title">Cloud Sync</h3>
             <div class="price" style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary);">9.99€ <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-secondary);" data-i18n="price-period-month">/ mois</span></div>
