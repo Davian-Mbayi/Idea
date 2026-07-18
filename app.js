@@ -1317,22 +1317,22 @@ function renderInventory() {
 
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td class="cell-sku">${escapeHTML(p.sku)}</td>
-      <td>
+      <td class="cell-sku" data-label="${t('sku')}">${escapeHTML(p.sku)}</td>
+      <td data-label="${t('product-name')}">
         <div class="cell-name">${escapeHTML(p.name)}</div>
         <div style="font-size: 0.75rem; color: var(--text-secondary); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHTML(p.description || '')}">
           ${escapeHTML(p.description || '')}
         </div>
       </td>
-      <td><span class="badge badge-category">${escapeHTML(p.category)}</span></td>
-      <td style="text-align: right;" class="cell-mono">${formatCurrency(p.costPrice)}</td>
-      <td style="text-align: right;" class="cell-mono">${formatCurrency(p.retailPrice)}</td>
-      <td style="text-align: center; font-weight: 600;" class="cell-mono">${p.quantity}</td>
-      <td style="text-align: center; color: ${margin >= 40 ? 'var(--success)' : 'var(--text-secondary)'}; font-weight: 500;" class="cell-mono">
+      <td data-label="${t('category')}"><span class="badge badge-category">${escapeHTML(p.category)}</span></td>
+      <td style="text-align: right;" class="cell-mono" data-label="${t('cost-price')}">${formatCurrency(p.costPrice)}</td>
+      <td style="text-align: right;" class="cell-mono" data-label="${t('retail-price')}">${formatCurrency(p.retailPrice)}</td>
+      <td style="text-align: center; font-weight: 600;" class="cell-mono" data-label="${t('stock-qty')}">${p.quantity}</td>
+      <td style="text-align: center; color: ${margin >= 40 ? 'var(--success)' : 'var(--text-secondary)'}; font-weight: 500;" class="cell-mono" data-label="${t('margin')}">
         ${margin.toFixed(0)}%
       </td>
-      <td><span class="badge ${badgeClass}">${statusText}</span></td>
-      <td>
+      <td data-label="${t('status')}"><span class="badge ${badgeClass}">${statusText}</span></td>
+      <td data-label="${t('actions')}">
         <div class="cell-actions">
           <button class="icon-btn btn-adjust" data-id="${p.id}" title="${t('modal-adjust-stock')}">
             <i data-lucide="plus-minus"></i>
@@ -1457,17 +1457,17 @@ function renderTransactions() {
 
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td style="color: var(--text-secondary);" class="cell-mono">${formatDate(tNode.date)}</td>
-      <td><div class="cell-name">${escapeHTML(tNode.productName)}</div></td>
-      <td class="cell-sku">${escapeHTML(tNode.sku || 'N/A')}</td>
-      <td><span class="${typeClass}">${typeText}</span></td>
-      <td style="text-align: center; font-weight: 600;" class="cell-mono ${tNode.quantity > 0 ? 'tx-type-in' : 'tx-type-out'}">
+      <td style="color: var(--text-secondary);" class="cell-mono" data-label="${t('date-time')}">${formatDate(tNode.date)}</td>
+      <td data-label="${t('product-name')}"><div class="cell-name">${escapeHTML(tNode.productName)}</div></td>
+      <td class="cell-sku" data-label="${t('sku')}">${escapeHTML(tNode.sku || 'N/A')}</td>
+      <td data-label="${t('type')}"><span class="${typeClass}">${typeText}</span></td>
+      <td style="text-align: center; font-weight: 600;" class="cell-mono ${tNode.quantity > 0 ? 'tx-type-in' : 'tx-type-out'}" data-label="${t('qty-change')}">
         ${qtyPrefix}${tNode.quantity}
       </td>
-      <td style="color: var(--text-secondary); max-width: 280px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHTML(translatedReason)}">
+      <td style="color: var(--text-secondary); max-width: 280px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHTML(translatedReason)}" data-label="${t('reason-notes')}">
         ${escapeHTML(translatedReason)}
       </td>
-      <td style="text-align: right;">
+      <td style="text-align: right;" data-label="${t('actions')}">
         <button class="icon-btn btn-print-tx" data-id="${tNode.id}" title="${t('print-receipt')}">
           <i data-lucide="printer"></i>
         </button>
