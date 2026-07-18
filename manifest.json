@@ -1,0 +1,22 @@
+{
+  "name": "ShopStock",
+  "short_name": "ShopStock",
+  "description": "Gestionnaire d'inventaire moderne et hors-ligne pour petits commerces.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#18181b",
+  "theme_color": "#18181b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

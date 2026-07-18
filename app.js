@@ -2944,6 +2944,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Render initial active view (Dashboard)
   renderDashboard();
 
+  // Register PWA Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker registered successfully!', reg))
+        .catch(err => console.error('Service Worker registration failed:', err));
+    });
+  }
+
   // Trigger Lucide to parse tags
   lucide.createIcons();
 });
